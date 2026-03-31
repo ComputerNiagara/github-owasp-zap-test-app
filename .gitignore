@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# ZAP output if run locally
+zap_reports/
+report_html.html
+zap.out
