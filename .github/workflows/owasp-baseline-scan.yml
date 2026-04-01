@@ -19,6 +19,17 @@ on:
   # Fires automatically after a successful deployment
   deployment_status:
 
+  # Explicit trigger from deploy pipeline — TEST ONLY
+  # This is a workaround for a personal GitHub.com limitation where
+  # github-actions[bot] created deployments do not reliably fire the
+  # deployment_status event on personal accounts.
+  #
+  # ⚠️ DO NOT copy this trigger into enterprise workflows.
+  # In GitHub Enterprise, deployment_status fires correctly and this
+  # repository_dispatch fallback is not needed.
+  repository_dispatch:
+    types: [zap-baseline-scan]
+
   # Manual fallback — use before pipeline integration is set up
   workflow_dispatch:
     inputs:
@@ -74,6 +85,30 @@ jobs:
       runner: 'ubuntu-latest'
       # ↑ Public app (internet accessible):  'ubuntu-latest'
       # ↑ Internal app (behind firewall):    'self-hosted' or your runner label
+      fail_on_warn: false
+    secrets:
+      ZAP_AUTH_HEADER_VALUE: ${{ secrets.ZAP_AUTH_HEADER_VALUE }}
+
+  # ---------------------------------------------------------------
+  # Explicit dispatch from deploy pipeline — TEST ONLY
+  # ---------------------------------------------------------------
+  # This job is a workaround for a personal GitHub.com limitation.
+  # github-actions[bot] created deployments do not reliably fire the
+  # deployment_status event on personal accounts, so fake-deploy.yml
+  # explicitly triggers this scan via repository_dispatch instead.
+  #
+  # ⚠️ DO NOT copy this job into enterprise workflows.
+  # In GitHub Enterprise the scan-on-deployment job above handles
+  # this automatically via deployment_status — no dispatch needed.
+  # ---------------------------------------------------------------
+  scan-on-dispatch:
+    name: Scan [${{ github.event.client_payload.environment }}]
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'zap-baseline-scan'
+    uses: ComputerNiagara/github-owasp-templates/.github/workflows/owasp-baseline-reusable.yml@main
+    with:
+      target_url: ${{ github.event.client_payload.environment_url }}
+      environment: ${{ github.event.client_payload.environment }}
+      runner: 'ubuntu-latest'
       fail_on_warn: false
     secrets:
       ZAP_AUTH_HEADER_VALUE: ${{ secrets.ZAP_AUTH_HEADER_VALUE }}
