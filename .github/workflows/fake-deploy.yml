@@ -13,62 +13,57 @@ name: Fake Deploy to DEV
 on:
   workflow_dispatch:
 
-jobs:
-  # ---------------------------------------------------------------
-  # Step 1 — Create GitHub Deployment record
-  # ---------------------------------------------------------------
-  create-deployment:
-    name: Create Deployment
-    uses: ComputerNiagara/github-owasp-templates/.github/workflows/create-deployment.yml@fix/zap-workspace-permissions
-    with:
-      environment: dev
-    permissions:
-      contents: read
-      deployments: write
+permissions:
+  contents: read
+  deployments: write
 
-  # ---------------------------------------------------------------
-  # Fake deploy — replace with real deploy steps
-  # ---------------------------------------------------------------
+jobs:
   deploy:
-    name: Deploy Application
-    needs: create-deployment
+    name: Deploy to DEV
     runs-on: ubuntu-latest
     steps:
-      - name: Simulate Deploy
+      # ---------------------------------------------------------------
+      # Step 1 — Create GitHub Deployment record at the start
+      # ---------------------------------------------------------------
+      - name: Create Deployment
+        id: deployment
+        uses: ComputerNiagara/github-owasp-templates/actions/create-deployment@main
+        with:
+          environment: dev
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---------------------------------------------------------------
+      # Fake deploy step — replace with real deploy steps
+      # ---------------------------------------------------------------
+      - name: Deploy Application
         run: |
           echo "Simulating deployment..."
           sleep 5
           echo "Deploy complete."
 
-  # ---------------------------------------------------------------
-  # Step 2 — Report success + set URL for ZAP to scan
-  # ---------------------------------------------------------------
-  report-success:
-    name: Report Success
-    needs: [create-deployment, deploy]
-    if: success()
-    uses: ComputerNiagara/github-owasp-templates/.github/workflows/update-deployment.yml@fix/zap-workspace-permissions
-    with:
-      deployment_id: ${{ needs.create-deployment.outputs.deployment_id }}
-      environment: dev
-      status: success
-      environment_url: 'https://www.devopspertise.com'   # TODO: replace with your app URL
-    permissions:
-      contents: read
-      deployments: write
+      # ---------------------------------------------------------------
+      # Step 2 — Report success + set URL for ZAP to scan
+      # GitHub fires deployment_status event after this step
+      # ZAP baseline scan triggers automatically in this repo
+      # ---------------------------------------------------------------
+      - name: Report Deployment Success
+        if: success()
+        uses: ComputerNiagara/github-owasp-templates/actions/update-deployment@main
+        with:
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          environment: dev
+          status: success
+          environment_url: 'http://testphp.vulnweb.com'   # TODO: replace with your app URL
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-  # ---------------------------------------------------------------
-  # Step 3 — Report failure (ZAP will NOT fire)
-  # ---------------------------------------------------------------
-  report-failure:
-    name: Report Failure
-    needs: [create-deployment, deploy]
-    if: failure()
-    uses: ComputerNiagara/github-owasp-templates/.github/workflows/update-deployment.yml@fix/zap-workspace-permissions
-    with:
-      deployment_id: ${{ needs.create-deployment.outputs.deployment_id }}
-      environment: dev
-      status: failure
-    permissions:
-      contents: read
-      deployments: write
+      # ---------------------------------------------------------------
+      # Step 3 — Report failure (ZAP will NOT fire)
+      # ---------------------------------------------------------------
+      - name: Report Deployment Failure
+        if: failure()
+        uses: ComputerNiagara/github-owasp-templates/actions/update-deployment@main
+        with:
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          environment: dev
+          status: failure
+          token: ${{ secrets.GITHUB_TOKEN }}
