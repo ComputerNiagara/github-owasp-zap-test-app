@@ -1,0 +1,69 @@
+# =============================================================================
+# Fake Deploy to DEV — Test Workflow
+# =============================================================================
+# Purpose: Simulates a deployment to trigger the automatic OWASP ZAP baseline
+#          scan via the deployment_status event.
+#
+# This is a TEST workflow — there is no real deployment here.
+# Replace the environment_url with your actual app URL before using.
+#
+# SETUP:
+#   1. Replace https://your-app-dev.yourcompany.com with your actual URL
+#   2. Run this workflow manually to trigger the ZAP scan automatically
+# =============================================================================
+
+name: Deploy to DEV
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to DEV
+    runs-on: ubuntu-latest
+    steps:
+      # ---------------------------------------------------------------
+      # Step 1 — Create GitHub Deployment record
+      # ---------------------------------------------------------------
+      - name: Create Deployment
+        id: deployment
+        uses: ComputerNiagara/github-owasp-templates/.github/workflows/create-deployment.yml@fix/zap-workspace-permissions
+        with:
+          environment: dev
+
+      # ---------------------------------------------------------------
+      # Fake deploy step — replace with real deploy steps
+      # ---------------------------------------------------------------
+      - name: Deploy Application
+        run: |
+          echo "Simulating deployment..."
+          echo "In a real pipeline, your deploy steps go here."
+          sleep 5
+          echo "Deploy complete."
+
+      # ---------------------------------------------------------------
+      # Step 2 — Report success + set URL for ZAP to scan
+      # ---------------------------------------------------------------
+      - name: Report Deployment Success
+        if: success()
+        uses: ComputerNiagara/github-owasp-templates/.github/workflows/update-deployment.yml@fix/zap-workspace-permissions
+        with:
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          environment: dev
+          status: success
+          environment_url: 'https://www.devopspertise.com'   # TODO: replace with your app URL
+
+      # ---------------------------------------------------------------
+      # Step 3 — Report failure (ZAP will NOT fire)
+      # ---------------------------------------------------------------
+      - name: Report Deployment Failure
+        if: failure()
+        uses: ComputerNiagara/github-owasp-templates/.github/workflows/update-deployment.yml@fix/zap-workspace-permissions
+        with:
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          environment: dev
+          status: failure
