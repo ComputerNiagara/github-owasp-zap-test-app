@@ -52,7 +52,7 @@ jobs:
       deployment_id: ${{ needs.create-deployment.outputs.deployment_id }}
       environment: dev
       status: success
-      environment_url: 'http://testphp.vulnweb.com'   # TODO: replace with your app URL
+      environment_url: 'https://www.devopspertise.com'   # TODO: replace with your app URL
     permissions:
       contents: read
       deployments: write
